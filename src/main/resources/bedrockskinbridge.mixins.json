@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.moxi.bedrockskinbridge.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "MixinClientPacketListener",
+    "MixinPlayerInfo",
+    "MixinSkinProvider"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

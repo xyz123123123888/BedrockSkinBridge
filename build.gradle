@@ -1,0 +1,71 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.16.2'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'Fabric'
+        url = 'https://maven.fabricmc.net/'
+    }
+    maven {
+        name = 'ViaVersion'
+        url = 'https://repo.viaversion.com'
+        content {
+            includeGroupByRegex "com\\.viaversion(\\..+)?"
+            includeGroupByRegex "net\\.raphimc(\\..+)?"
+        }
+    }
+    maven {
+        name = 'Lenni0451'
+        url = 'https://maven.lenni0451.net/everything'
+    }
+    maven {
+        name = 'JitPack'
+        url = 'https://jitpack.io'
+        content {
+            includeGroupByRegex "com\\.github\\..+"
+        }
+    }
+}
+
+dependencies {
+    // Minecraft 26.2 — 非混淆版本 (Mojang 自 1.21.11 后移除混淆)
+    // 无需 mappings 行: 游戏自带 Mojang 官方类名/方法名/参数名
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // ViaFabricPlus (API only, 不打包 — 运行时由用户安装)
+    compileOnly "com.viaversion:viafabricplus-api:${project.viafabricplus_version}"
+
+    // ViaBedrock (ViaFabricPlus 已 JIJ 内置, 仅编译期需要)
+    compileOnly "net.raphimc:ViaBedrock:${project.viabedrock_version}"
+
+    // CSL (CustomSkinLoader) — 无 Maven 仓库, 运行时通过反射交互, 无需编译期依赖
+}
+
+processResources {
+    inputs.property "version", project.version
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}

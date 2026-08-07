@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "bedrockskinbridge",
+  "version": "${version}",
+  "name": "BedrockSkinBridge",
+  "description": "在 ViaBedrock 场景下打通 JE/BE 皮肤显示：JE 玩家看到 BE 普通皮肤，BE 玩家看到 JE 皮肤（通过 LittleSkin）",
+  "authors": [
+    "Moxi"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/bedrockskinbridge/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.moxi.bedrockskinbridge.BedrockSkinBridge"
+    ]
+  },
+  "mixins": [
+    "bedrockskinbridge.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*",
+    "customskinloader-bootstrap": "*",
+    "viafabricplus": "*"
+  }
+}
