@@ -47,9 +47,9 @@
 
 | 依赖 | 版本要求 | 备注 |
 | :--- | :--- | :--- |
-| **Minecraft** | `26.2` (1.21.4+) | 非混淆版本（Mojang 官方映射） |
+| **Minecraft** | `26.2` | - |
 | **Fabric API** | `>= 0.154.2` | - |
-| **ViaFabricPlus** | `>= 4.6.1` | 必须包含 ViaBedrock 协议支持 |
+| **ViaFabricPlus** | `= 4.6.1` | 必须包含 ViaBedrock 协议支持 |
 | **CustomSkinLoader** | `>= 15.0.1` | 万用皮肤补丁，用于 JE 侧皮肤渲染 |
 
 ---
