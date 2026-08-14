@@ -3,12 +3,14 @@ package com.moxi.bedrockskinbridge.skin;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.ClientAsset;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,12 +39,18 @@ public class BedrockSkinTextureManager {
         if (cached != null) return cached;
 
         BufferedImage skinImage = BedrockSkinCache.getSkinImage(uuid);
-        if (skinImage == null) return null;
+        if (skinImage == null) {
+            System.out.println("[BedrockSkinBridge] No skin image for " + uuid);
+            return null;
+        }
 
         // 注册皮肤纹理
         Identifier skinId = Identifier.fromNamespaceAndPath(NAMESPACE, "be_skin_" + uuid.toString().replace("-", ""));
         ClientAsset.Texture bodyAsset = registerTexture(skinId, skinImage);
-        if (bodyAsset == null) return null;
+        if (bodyAsset == null) {
+            System.out.println("[BedrockSkinBridge] Failed to register skin for " + uuid);
+            return null;
+        }
 
         // 注册披风纹理 (可选)
         ClientAsset.Texture capeAsset = null;
@@ -60,47 +68,56 @@ public class BedrockSkinTextureManager {
     }
 
     /**
-     * 把 BufferedImage 注册为 Minecraft 动态纹理。
-     * 逐像素拷入 NativeImage, 避免 PNG 编解码 (省一次完整编码+解码)。
+     * 把 BufferedImage 注册为原版动态纹理 (最可靠方式)。
+     *
+     * 流程: BufferedImage -> ImageIO 写临时 PNG -> NativeImage.read 原版解码
+     *       -> DynamicTexture(Supplier, NativeImage) -> 注册到 TextureManager
+     * 用原版解码器, 避免手动逐像素转换的字节序/格式坑。
      */
     private static ClientAsset.Texture registerTexture(Identifier id, BufferedImage image) {
+        File tempFile = null;
         try {
-            int w = image.getWidth();
-            int h = image.getHeight();
-            NativeImage nativeImage = new NativeImage(w, h, true);
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    nativeImage.setPixelABGR(x, y, argbToNative(image.getRGB(x, y)));
-                }
+            // 1. BufferedImage 写入临时 PNG
+            tempFile = File.createTempFile("bedrock_skin_" + id.toString().replace(":", "_") + "_", ".png");
+            if (!javax.imageio.ImageIO.write(image, "png", tempFile)) {
+                System.err.println("[BedrockSkinBridge] ImageIO.write returned false for " + id);
+                return null;
             }
 
-            // 注册动态纹理 (DynamicTexture 接管 NativeImage, 不再手动 close)
+            // 2. 原版解码 PNG -> NativeImage
+            //    注意: NativeImage 所有权移交给 DynamicTexture (<-lambda, NativeImage> 构造),
+            //    由 DynamicTexture.close() 负责释放, 此处不可再用 try-with-resources 关闭。
+            NativeImage nativeImage;
+            try (java.io.InputStream in = new java.io.FileInputStream(tempFile)) {
+                nativeImage = NativeImage.read(in);
+            }
+
+            // 3. 构造动态纹理并上传 (复用已注册的同 ID 纹理, 避免重复注册)
+            TextureManager textureManager = Minecraft.getInstance().getTextureManager();
+            if (textureManager.getTexture(id) instanceof DynamicTexture existing) {
+                existing.close();
+            }
             DynamicTexture dynamicTexture = new DynamicTexture(() -> id.toString(), nativeImage);
             dynamicTexture.upload();
-            Minecraft.getInstance().getTextureManager().register(id, dynamicTexture);
+            textureManager.register(id, dynamicTexture);
 
-            // 构造 ClientAsset.Texture (接口, 匿名实现)
-            final Identifier texturePath = id;
+            // 4. 构造 ClientAsset.Texture 返回
+            final Identifier textureId = id;
             return new ClientAsset.Texture() {
                 @Override
-                public Identifier texturePath() { return texturePath; }
+                public Identifier texturePath() { return textureId; }
                 @Override
-                public Identifier id() { return texturePath; }
+                public Identifier id() { return textureId; }
             };
         } catch (Exception e) {
-            System.out.println("[BedrockSkinBridge] registerTexture failed: " + e.getMessage());
-            return null;
+            System.err.println("[BedrockSkinBridge] Failed to register texture " + id);
+            e.printStackTrace();
+        } finally {
+            if (tempFile != null) {
+                tempFile.delete();
+            }
         }
-    }
-
-    /**
-     * BufferedImage 的 ARGB(0xAARRGGBB) → NativeImage 内部 ABGR(0xAABBGGRR)。
-     * 仅交换 R/B, A 与 G 位不变。
-     */
-    private static int argbToNative(int argb) {
-        return (argb & 0xFF00FF00)                  // 保留 A(高8) 和 G(byte1)
-            | ((argb >>> 16) & 0x000000FF)          // 原 R → 低8位(新 B)
-            | ((argb & 0x000000FF) << 16);          // 原 B → 16-23位(新 R)
+        return null;
     }
 
     /**

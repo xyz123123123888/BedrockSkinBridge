@@ -78,8 +78,13 @@ public class BedrockSkinProvider extends SkinProvider {
      * @param uuid     JE 玩家 UUID
      * @param username JE 玩家用户名
      */
-    public static void sendJavaSkin(UserConnection user, UUID uuid, String username) {
-        System.out.println("[BedrockSkinBridge] sendJavaSkin START: user=" + username + " uuid=" + uuid);
+    public static void sendJavaSkin(UserConnection user, UUID jeUuid, String username) {
+        // 关键: 发包时 UUID 必须用 ViaBedrock 会话 UUID (服务器登记的玩家身份),
+        // 而不是 JE 玩家的 profileId。否则服务器匹配不到玩家, 直接丢弃包,
+        // 其他 BE 玩家永远看不到。会话 UUID 取 user.getProtocolInfo().getUuid()。
+        final UUID bedrockUuid = resolveBedrockUuid(user, jeUuid);
+        System.out.println("[BedrockSkinBridge] sendJavaSkin START: user=" + username
+            + " jeUuid=" + jeUuid + " bedrockUuid=" + bedrockUuid);
         // 异步获取皮肤, 避免阻塞网络线程
         new Thread(() -> {
             try {
@@ -110,15 +115,31 @@ public class BedrockSkinProvider extends SkinProvider {
                 boolean slim = "slim".equals(skinInfo.model);
                 SkinData skinData = buildStandardSkinData(skinImage, capeImage, slim);
 
-                // 5. 发送 PlayerSkin 数据包给 BE 服务器
-                System.out.println("[BedrockSkinBridge]   sending PLAYER_SKIN packet to BE server...");
-                sendPlayerSkinPacket(user, uuid, skinData);
+                // 5. 发送 PlayerSkin 数据包给 BE 服务器 (用会话 UUID 匹配服务器登记的本玩家)
+                System.out.println("[BedrockSkinBridge]   sending PLAYER_SKIN packet to BE server (uuid=" + bedrockUuid + ")...");
+                sendPlayerSkinPacket(user, bedrockUuid, skinData);
                 System.out.println("[BedrockSkinBridge]   PLAYER_SKIN packet sent successfully");
             } catch (Exception e) {
                 System.out.println("[BedrockSkinBridge] sendJavaSkin FAILED: " + e.getClass().getSimpleName() + ": " + e.getMessage());
                 e.printStackTrace();
             }
         }, "BSB-SkinSend").start();
+    }
+
+    /**
+     * 解析发包应使用的 Bedrock 会话 UUID。
+     * 优先取 ViaBedrock 登记本玩家的会话 UUID (user.getProtocolInfo().getUuid()),
+     * 取不到时回退到 JE UUID。
+     */
+    private static UUID resolveBedrockUuid(UserConnection user, UUID jeUuid) {
+        try {
+            UUID viaUuid = user.getProtocolInfo().getUuid();
+            if (viaUuid != null) {
+                return viaUuid;
+            }
+        } catch (Exception ignored) {
+        }
+        return jeUuid;
     }
 
     /**
@@ -163,7 +184,7 @@ public class BedrockSkinProvider extends SkinProvider {
             wrapper.write(BedrockTypes.SKIN, skin);
             wrapper.write(BedrockTypes.STRING, "java_skin");  // newSkinName
             wrapper.write(BedrockTypes.STRING, "");            // oldSkinName
-            wrapper.write(Types.BOOLEAN, false);               // trustedSkin
+            wrapper.write(Types.BOOLEAN, true);               // trustedSkin (置 true, 尝试让服务端接受并广播)
             wrapper.sendToServer(BedrockProtocol.class);
         } catch (Exception e) {
             // 发送失败, 静默处理

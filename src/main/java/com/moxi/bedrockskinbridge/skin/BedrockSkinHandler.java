@@ -31,28 +31,42 @@ public class BedrockSkinHandler {
      * @return true 表示是 5D/7D 皮肤
      */
     public static boolean isCustomGeometry(String skinResourcePatch, String geometryData) {
-        // geometryData 非空且非 "null": 携带自定义几何定义 → 5D/7D
+        // 优先解析 skinResourcePatch 指定的几何名 (最可靠依据)。
+        // 很多普通 BE 皮肤即使带 geometryData, 其 skinResourcePatch 也明确指向
+        // 标准 humanoid 几何, 此时应正常渲染, 不能仅因 geometryData 非空就判定为 5D/7D。
+        String defaultGeo = extractDefaultGeometry(skinResourcePatch);
+        if (defaultGeo != null) {
+            return !GEO_HUMANOID.equals(defaultGeo)
+                && !GEO_HUMANOID_SLIM.equals(defaultGeo);
+        }
+        // skinResourcePatch 无有效几何名时, 才退而用 geometryData 判断:
+        // geometryData 是非空且非 "null" 的自定义几何 → 5D/7D
         if (geometryData != null && !geometryData.isEmpty()
             && !"null".equalsIgnoreCase(geometryData)) {
             return true;
         }
-        // 否则看 skinResourcePatch 指定的几何名
+        return false;
+    }
+
+    /**
+     * 从 skinResourcePatch JSON 中提取 geometry.default 的几何名。
+     * 无法解析/不存在时返回 null。
+     */
+    private static String extractDefaultGeometry(String skinResourcePatch) {
         if (skinResourcePatch == null || skinResourcePatch.isEmpty()) {
-            return false;
+            return null;
         }
         try {
             JsonObject json = JsonParser.parseString(skinResourcePatch).getAsJsonObject();
-            if (json.has("geometry")) {
+            if (json.has("geometry") && json.get("geometry").isJsonObject()) {
                 JsonObject geo = json.getAsJsonObject("geometry");
-                String defaultGeo = geo.has("default")
-                    ? geo.get("default").getAsString() : "";
-                // 标准模型不是 5D/7D
-                return !GEO_HUMANOID.equals(defaultGeo)
-                    && !GEO_HUMANOID_SLIM.equals(defaultGeo);
+                if (geo.has("default") && geo.get("default").isJsonPrimitive()) {
+                    return geo.get("default").getAsString();
+                }
             }
-            return false;
+            return null;
         } catch (Exception e) {
-            return false;
+            return null;
         }
     }
 

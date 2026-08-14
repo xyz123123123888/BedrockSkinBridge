@@ -33,6 +33,12 @@ public class BedrockSkinBridge implements ClientModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("BedrockSkinBridge");
 
+    /**
+     * 100s 延迟皮肤重发标志位。
+     * 每次进服重置为 false, 延迟任务触发后置 true, 保证仅触发一次。
+     */
+    private volatile boolean delayedSkinSent = false;
+
     @Override
     public void onInitializeClient() {
         LOGGER.info("[BedrockSkinBridge] 初始化中...");
@@ -104,12 +110,39 @@ public class BedrockSkinBridge implements ClientModInitializer {
             // 5. 发送 JE 皮肤给 BE 服务器
             BedrockSkinProvider.sendJavaSkin(user, uuid, username);
             LOGGER.info("[BedrockSkinBridge] 已触发 JE 皮肤发送到 BE 服务器");
+
+            // 6. 延迟 100s 重发一次, 触发服务器"更改皮肤"广播到其他玩家视角。
+            //    立即发送可能因服务器未登记玩家而被忽略, 100s 后玩家已完全进入世界,
+            //    此时重发能让服务器把这个皮肤广播给所有其他玩家。
+            //    连 Java 服务器时包会被直接丢弃, 无需担心兼容问题。
+            delayedSkinSent = false;
+            scheduleDelayedSkinSend(user, uuid, username);
         } catch (NoClassDefFoundError e) {
             System.out.println("[BedrockSkinBridge] onPlayerJoin NoClassDefFoundError: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("[BedrockSkinBridge] onPlayerJoin FAILED: " + e.getClass().getSimpleName() + ": " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * JOIN 后延迟 100s 重发一次 JE 皮肤, 触发服务器"更改皮肤"广播。
+     * 仅触发一次 (delayedSkinSent 标志位), 下次进入服务器才重新触发。
+     */
+    private void scheduleDelayedSkinSend(UserConnection user, UUID uuid, String username) {
+        new Thread(() -> {
+            try {
+                Thread.sleep(100_000); // 100 秒
+                if (delayedSkinSent) {
+                    return; // 已触发, 跳过
+                }
+                delayedSkinSent = true;
+                System.out.println("[BedrockSkinBridge] 100s 延迟: 重发 JE 皮肤 (触发更改皮肤广播)");
+                BedrockSkinProvider.sendJavaSkin(user, uuid, username);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }, "BSB-DelayedSkinSend").start();
     }
 
     /**
