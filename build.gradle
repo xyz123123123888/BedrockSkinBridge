@@ -60,6 +60,12 @@ processResources {
     }
 }
 
+// GPL-3.0 合规: 将根目录的 LICENSE / NOTICE 一并打包进 JAR, 满足分发时附带许可证文本的要求
+tasks.named('jar', Jar) {
+    from(rootProject.file('LICENSE'))
+    from(rootProject.file('NOTICE'))
+}
+
 tasks.withType(JavaCompile).configureEach {
     it.options.release = 25
 }

@@ -1,0 +1,45 @@
+BedrockSkinBridge
+Copyright (C) 2026 Moxi
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+--------------------------------------------------------------------------
+Third-Party Notices
+--------------------------------------------------------------------------
+This project integrates and builds upon the following third-party
+libraries, each of which retains its own copyright and license.  Their
+licenses are reproduced or referenced below in accordance with their
+respective terms.
+
+1. ViaBedrock
+   Copyright (c) RaphiMC
+   License: GNU General Public License v3.0 (GPL-3.0)
+   Source : https://github.com/RaphiMC/ViaBedrock
+   Purpose: Bedrock Edition protocol translation core.
+
+2. ViaFabricPlus
+   Copyright (c) ViaVersion
+   License: GNU General Public License v3.0 (GPL-3.0)
+   Source : https://github.com/ViaVersion/ViaFabricPlus
+   Purpose: Java client protocol translation framework.
+
+3. CustomSkinLoader (万用皮肤补丁)
+   Copyright (c) xfl03
+   License: GNU General Public License v3.0-only (GPL-3.0-only)
+   Source : https://github.com/xfl03/MCCustomSkinLoader
+   Purpose: Custom skin loading and rendering.
+
+--------------------------------------------------------------------------
+The full text of the GNU General Public License v3.0 is available in the
+LICENSE file of this project and at <https://www.gnu.org/licenses/gpl-3.0>.

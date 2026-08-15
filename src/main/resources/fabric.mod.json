@@ -8,7 +8,7 @@
     "Moxi"
   ],
   "contact": {},
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "icon": "assets/bedrockskinbridge/icon.png",
   "environment": "client",
   "entrypoints": {

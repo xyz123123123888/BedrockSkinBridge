@@ -1,3 +1,7 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2026 Moxi
+ */
 package com.moxi.bedrockskinbridge.skin;
 
 import com.viaversion.viaversion.api.connection.UserConnection;
@@ -34,7 +38,11 @@ public class BedrockSkinProvider extends SkinProvider {
         super.setSkin(user, uuid, skin);
 
         // 日志: 确认 setSkin 被调用
-        System.out.println("[BedrockSkinBridge] setSkin called: uuid=" + uuid);
+        System.out.println("[BedrockSkinBridge] setSkin called: uuid=" + uuid
+            + " capeData=" + (skin.capeData() != null ? skin.capeData().getWidth() + "x" + skin.capeData().getHeight() : "null")
+            + " capeId=" + skin.capeId()
+            + " persona=" + skin.persona()
+            + " premium=" + skin.premium());
 
         // 5D/7D/persona/premium 皮肤: JE 无法用单张贴图渲染, 跳过 (显示默认 Steve)
         if (shouldFallbackToSteve(skin)) return;
@@ -100,14 +108,26 @@ public class BedrockSkinProvider extends SkinProvider {
                 }
                 System.out.println("[BedrockSkinBridge]   skin image OK: " + skinImage.getWidth() + "x" + skinImage.getHeight());
 
+                // 2.5 写入磁盘缓存, 供下次进服时 getClientPlayerSkin 登录注入
+                //     首次进服时登录阶段缓存为空只能 Steve; 缓存后"第二次及以后"进服可稳定注入
+                boolean slim = "slim".equals(skinInfo.model);
+                LittleSkinCache.save(username, skinImage, slim, skinInfo.skinFileName);
+
                 // 3. 下载披风 (可选)
                 BufferedImage capeImage = null;
                 if (skinInfo.capeUrl != null) {
                     capeImage = LittleSkinClient.downloadImage(skinInfo.capeUrl);
+                    System.out.println("[BedrockSkinBridge]   cape download " +
+                        (capeImage != null ? "OK " + capeImage.getWidth() + "x" + capeImage.getHeight()
+                                           : "FAILED (url=" + skinInfo.capeUrl + ")"));
+                } else {
+                    System.out.println("[BedrockSkinBridge]   no cape url for " + username);
                 }
 
+                // 3.5 写入披风磁盘缓存, 供下次登录注入 CapeData
+                LittleSkinCache.saveCape(username, capeImage);
+
                 // 4. 构造标准 Bedrock SkinData
-                boolean slim = "slim".equals(skinInfo.model);
                 SkinData skinData = buildStandardSkinData(skinImage, capeImage, slim);
 
                 // 5. 发送 PlayerSkin 包给 BE 服务器。
@@ -159,7 +179,7 @@ public class BedrockSkinProvider extends SkinProvider {
             "",                                       // animationData
             false,                                    // premium
             false,                                    // persona
-            false,                                    // capeOnClassic
+            true,                                     // capeOnClassic (经典模型上显示披风, 必须 true)
             true,                                     // primaryUser
             "",                                       // capeId
             "",                                       // fullSkinId

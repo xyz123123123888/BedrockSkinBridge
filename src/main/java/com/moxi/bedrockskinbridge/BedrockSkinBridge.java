@@ -1,7 +1,12 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2026 Moxi
+ */
 package com.moxi.bedrockskinbridge;
 
 import com.moxi.bedrockskinbridge.skin.BedrockSkinProvider;
 import com.moxi.bedrockskinbridge.skin.CSLInjector;
+import com.moxi.bedrockskinbridge.skin.SkinMonitor;
 import com.viaversion.viaversion.api.Via;
 import com.viaversion.viaversion.api.connection.UserConnection;
 import com.viaversion.viafabricplus.ViaFabricPlus;
@@ -42,6 +47,9 @@ public class BedrockSkinBridge implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         LOGGER.info("[BedrockSkinBridge] 初始化中...");
+
+        // 0. 加载本 Mod 配置
+        SkinBridgeConfig.load();
 
         // 1. 初始化 CSL 反射
         boolean cslReady = CSLInjector.init();
@@ -107,11 +115,16 @@ public class BedrockSkinBridge implements ClientModInitializer {
             System.out.println("[BedrockSkinBridge]   local player: name=" + username + " uuid=" + uuid);
             if (username == null || uuid == null) return;
 
-            // 5. 发送 JE 皮肤给 BE 服务器
+            // 5. 启动云端/本地皮肤监控 (异步线程, 含网络请求)
+            //    对比云端哈希与本地缓存: 相同则跳过 / 无本地则直接下载 / 不同则弹 UI 选择
+            new Thread(() -> SkinMonitor.checkAndHandle(username, client),
+                "BSB-SkinMonitor").start();
+
+            // 6. 发送 JE 皮肤给 BE 服务器
             BedrockSkinProvider.sendJavaSkin(user, uuid, username);
             LOGGER.info("[BedrockSkinBridge] 已触发 JE 皮肤发送到 BE 服务器");
 
-            // 6. 立即发送 + 60s 补发一次, 触发服务器"更改皮肤"广播到其他玩家视角。
+            // 7. 立即发送 + 60s 补发一次, 触发服务器"更改皮肤"广播到其他玩家视角。
             //    立即发送时服务器可能尚未登记玩家而失败, 或 JOIN 时 protocolInfo.getUuid()
             //    尚未初始化。60s 后玩家已完全进入世界且会话 UUID 已稳定, 补发一次兜底。
             //    最多补发一次, 避免多次广播导致其他 BE 玩家聊天栏提示刷屏。
