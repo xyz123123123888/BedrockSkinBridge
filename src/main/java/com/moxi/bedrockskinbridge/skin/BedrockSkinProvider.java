@@ -79,12 +79,7 @@ public class BedrockSkinProvider extends SkinProvider {
      * @param username JE 玩家用户名
      */
     public static void sendJavaSkin(UserConnection user, UUID jeUuid, String username) {
-        // 关键: 发包时 UUID 必须用 ViaBedrock 会话 UUID (服务器登记的玩家身份),
-        // 而不是 JE 玩家的 profileId。否则服务器匹配不到玩家, 直接丢弃包,
-        // 其他 BE 玩家永远看不到。会话 UUID 取 user.getProtocolInfo().getUuid()。
-        final UUID bedrockUuid = resolveBedrockUuid(user, jeUuid);
-        System.out.println("[BedrockSkinBridge] sendJavaSkin START: user=" + username
-            + " jeUuid=" + jeUuid + " bedrockUuid=" + bedrockUuid);
+        System.out.println("[BedrockSkinBridge] sendJavaSkin START: user=" + username + " jeUuid=" + jeUuid);
         // 异步获取皮肤, 避免阻塞网络线程
         new Thread(() -> {
             try {
@@ -115,10 +110,14 @@ public class BedrockSkinProvider extends SkinProvider {
                 boolean slim = "slim".equals(skinInfo.model);
                 SkinData skinData = buildStandardSkinData(skinImage, capeImage, slim);
 
-                // 5. 发送 PlayerSkin 数据包给 BE 服务器 (用会话 UUID 匹配服务器登记的本玩家)
+                // 5. 发送 PlayerSkin 包给 BE 服务器。
+                //    关键: 发包时 UUID 必须用 ViaBedrock 会话 UUID (服务器登记的玩家身份),
+                //    而不是 JE 玩家的 profileId。否则服务器匹配不到玩家, 直接丢弃包。
+                //    每次发送前现取会话 UUID, 避免 JOIN 时 protocolInfo 尚未初始化。
+                UUID bedrockUuid = resolveBedrockUuid(user, jeUuid);
                 System.out.println("[BedrockSkinBridge]   sending PLAYER_SKIN packet to BE server (uuid=" + bedrockUuid + ")...");
                 sendPlayerSkinPacket(user, bedrockUuid, skinData);
-                System.out.println("[BedrockSkinBridge]   PLAYER_SKIN packet sent successfully");
+                System.out.println("[BedrockSkinBridge]   PLAYER_SKIN packet sent successfully (uuid=" + bedrockUuid + ")");
             } catch (Exception e) {
                 System.out.println("[BedrockSkinBridge] sendJavaSkin FAILED: " + e.getClass().getSimpleName() + ": " + e.getMessage());
                 e.printStackTrace();

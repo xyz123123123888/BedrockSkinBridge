@@ -111,12 +111,13 @@ public class BedrockSkinBridge implements ClientModInitializer {
             BedrockSkinProvider.sendJavaSkin(user, uuid, username);
             LOGGER.info("[BedrockSkinBridge] 已触发 JE 皮肤发送到 BE 服务器");
 
-            // 6. 延迟 100s 重发一次, 触发服务器"更改皮肤"广播到其他玩家视角。
-            //    立即发送可能因服务器未登记玩家而被忽略, 100s 后玩家已完全进入世界,
-            //    此时重发能让服务器把这个皮肤广播给所有其他玩家。
+            // 6. 立即发送 + 60s 补发一次, 触发服务器"更改皮肤"广播到其他玩家视角。
+            //    立即发送时服务器可能尚未登记玩家而失败, 或 JOIN 时 protocolInfo.getUuid()
+            //    尚未初始化。60s 后玩家已完全进入世界且会话 UUID 已稳定, 补发一次兜底。
+            //    最多补发一次, 避免多次广播导致其他 BE 玩家聊天栏提示刷屏。
             //    连 Java 服务器时包会被直接丢弃, 无需担心兼容问题。
             delayedSkinSent = false;
-            scheduleDelayedSkinSend(user, uuid, username);
+            scheduleRetrySkinSend(user, uuid, username);
         } catch (NoClassDefFoundError e) {
             System.out.println("[BedrockSkinBridge] onPlayerJoin NoClassDefFoundError: " + e.getMessage());
         } catch (Exception e) {
@@ -126,23 +127,23 @@ public class BedrockSkinBridge implements ClientModInitializer {
     }
 
     /**
-     * JOIN 后延迟 100s 重发一次 JE 皮肤, 触发服务器"更改皮肤"广播。
-     * 仅触发一次 (delayedSkinSent 标志位), 下次进入服务器才重新触发。
+     * JOIN 后 60s 补发一次 JE 皮肤, 触发服务器"更改皮肤"广播。
+     * 仅补发一次 (delayedSkinSent 标志位), 避免刷屏; 下次进服才重新触发。
      */
-    private void scheduleDelayedSkinSend(UserConnection user, UUID uuid, String username) {
+    private void scheduleRetrySkinSend(UserConnection user, UUID uuid, String username) {
         new Thread(() -> {
             try {
-                Thread.sleep(100_000); // 100 秒
+                Thread.sleep(60_000); // 60 秒
                 if (delayedSkinSent) {
                     return; // 已触发, 跳过
                 }
                 delayedSkinSent = true;
-                System.out.println("[BedrockSkinBridge] 100s 延迟: 重发 JE 皮肤 (触发更改皮肤广播)");
+                System.out.println("[BedrockSkinBridge] 60s 补发: 重发 JE 皮肤 (触发更改皮肤广播)");
                 BedrockSkinProvider.sendJavaSkin(user, uuid, username);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-        }, "BSB-DelayedSkinSend").start();
+        }, "BSB-RetrySkinSend").start();
     }
 
     /**
