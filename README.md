@@ -112,10 +112,10 @@ cd BedrockSkinBridge
 
 ### 第三方依赖版权声明
 
-| 库 | 作者 | 许可证 | 用途 |
-| :--- | :--- | :--- | :--- |
-| ViaBedrock | RaphiMC | GPL-3.0 | Bedrock 协议转换核心 |
-| ViaFabricPlus | ViaVersion | GPL-3.0 | Java 客户端协议转换框架 |
-| CustomSkinLoader (万用皮肤补丁) | xfl03 | GPL-3.0-only | 皮肤加载与渲染 |
+| 库 - 作者 - 许可证
+| ------------------------
+| ViaBedrock - RaphiMC - GPL-3.0
+| ViaFabricPlus - ViaVersion - GPL-3.0
+| CustomSkinLoader - xfl03 - GPL-3.0-only
 
 以上各库均保留其原作者版权，本项目仅作正当引用与集成，未修改其原始二进制。完整许可条款见 [LICENSE](LICENSE) 与各依赖库对应仓库。
