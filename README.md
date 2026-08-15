@@ -1,6 +1,6 @@
 # BedrockSkinBridge
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Fabric](https://img.shields.io/badge/Mod_Loader-Fabric-blue)](https://fabricmc.net/)
 [![MC Version](https://img.shields.io/badge/Minecraft-26.2-green)](https://www.minecraft.net/)
 [![纯手工打造](https://img.shields.io/badge/纯手工打造-赛博石墩子-orange?style=flat-square&logo=codewars)](https://github.com/your-repo/BedrockSkinBridge)
@@ -100,3 +100,22 @@ cd BedrockSkinBridge
 ./gradlew build
 
 # 产物位于 build/libs/bedrockskinbridge-<version>.jar
+
+
+
+
+## <!> 本项目基于 **GNU General Public License v3.0 (GPL-3.0)** 开源。
+
+本模组通过 Mixin 拦截、SPI 接口实现与编译期 API 深度集成了以下 **GPL-3.0** 许可的依赖库。根据 GPL 的 copyleft 条款，本项目的衍生作品性质决定了它必须以 **GPL-3.0** 许可证发布，并开放对应源代码。**我们不能使用更宽松的许可证（如 MIT）发布本项目。**
+
+> ⚠️ 这意味着：任何基于本项目的二次分发作品，也必须以 GPL-3.0（或兼容许可证）发布并公开源代码。
+
+### 第三方依赖版权声明
+
+| 库 | 作者 | 许可证 | 用途 |
+| :--- | :--- | :--- | :--- |
+| ViaBedrock | RaphiMC | GPL-3.0 | Bedrock 协议转换核心 |
+| ViaFabricPlus | ViaVersion | GPL-3.0 | Java 客户端协议转换框架 |
+| CustomSkinLoader (万用皮肤补丁) | xfl03 | GPL-3.0-only | 皮肤加载与渲染 |
+
+以上各库均保留其原作者版权，本项目仅作正当引用与集成，未修改其原始二进制。完整许可条款见 [LICENSE](LICENSE) 与各依赖库对应仓库。
